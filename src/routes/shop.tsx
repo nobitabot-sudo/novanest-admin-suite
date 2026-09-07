@@ -12,7 +12,7 @@ import {
 import { useActiveProducts } from "@/hooks/useProducts";
 import { CATEGORIES } from "@/lib/store";
 
-type ShopSearch = { category?: string; sort?: string };
+type ShopSearch = { category?: string | undefined; sort?: string | undefined };
 
 export const Route = createFileRoute("/shop")({
   validateSearch: (search: Record<string, unknown>): ShopSearch => ({
