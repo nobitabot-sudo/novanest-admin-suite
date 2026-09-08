@@ -1,12 +1,10 @@
 import { Link } from "@tanstack/react-router";
 import { Menu, ShoppingBag, User } from "lucide-react";
-import { useEffect, useState } from "react";
-import { supabase } from "@/integrations/supabase/client";
-import { useState, type ReactNode } from "react";
-
+import { useEffect, useState, type ReactNode } from "react";
 
 import { Button } from "@/components/ui/button";
 import { useCart } from "@/lib/cart";
+import { supabase } from "@/integrations/supabase/client";
 
 const NAV = [
   { to: "/", label: "Home" },
@@ -25,6 +23,28 @@ function CartButton() {
           {count}
         </span>
       )}
+    </Link>
+  );
+}
+
+function AccountButton() {
+  const [email, setEmail] = useState<string | null>(null);
+
+  useEffect(() => {
+    supabase.auth.getUser().then(({ data }) => setEmail(data.user?.email ?? null));
+    const { data } = supabase.auth.onAuthStateChange((_event, session) => {
+      setEmail(session?.user?.email ?? null);
+    });
+    return () => data.subscription.unsubscribe();
+  }, []);
+
+  return (
+    <Link
+      to={email ? "/account" : "/auth"}
+      aria-label={email ? "Your account" : "Sign in"}
+      className="inline-flex h-10 w-10 items-center justify-center rounded-full border border-border bg-surface transition-colors hover:bg-accent"
+    >
+      <User className={`h-4 w-4 ${email ? "text-primary" : ""}`} />
     </Link>
   );
 }
@@ -55,6 +75,7 @@ export function StoreLayout({ children }: { children: ReactNode }) {
           </nav>
 
           <div className="flex items-center gap-2">
+            <AccountButton />
             <CartButton />
             <button
               type="button"
@@ -94,11 +115,6 @@ export function StoreLayout({ children }: { children: ReactNode }) {
             <Link to="/shop">
               <Button variant="ghost" size="sm">
                 Shop all
-              </Button>
-            </Link>
-            <Link to="/admin">
-              <Button variant="outline" size="sm">
-                Admin
               </Button>
             </Link>
           </div>
