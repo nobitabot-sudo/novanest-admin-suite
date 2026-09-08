@@ -1,7 +1,6 @@
 import { Link, createFileRoute, useNavigate } from "@tanstack/react-router";
-import { useState } from "react";
-import { toast } from "sonner";
 import { useEffect, useState } from "react";
+import { toast } from "sonner";
 
 import { StoreLayout } from "@/components/store/StoreLayout";
 import { Button } from "@/components/ui/button";
@@ -27,29 +26,21 @@ export const Route = createFileRoute("/checkout")({
 const UPI_ID = "novanest@upi";
 
 function CheckoutPage() {
-  const [checkingAuth, setCheckingAuth] = useState(true);
-
-useEffect(() => {
-  supabase.auth.getUser().then(({ data }) => {
-    if (!data.user) {
-      navigate({ to: "/auth", search: { redirect: "/checkout" } });
-    } else {
-      setCheckingAuth(false);
-    }
-  });
-}, [navigate]);
-
-if (checkingAuth) {
-  return (
-    <StoreLayout>
-      <div className="py-24 text-center text-sm text-muted-foreground">Checking your account…</div>
-    </StoreLayout>
-  );
-}
   const { items, subtotal, clear } = useCart();
   const navigate = useNavigate();
+  const [checkingAuth, setCheckingAuth] = useState(true);
   const [saving, setSaving] = useState(false);
   const [form, setForm] = useState({ name: "", phone: "", address: "", pincode: "" });
+
+  useEffect(() => {
+    supabase.auth.getUser().then(({ data }) => {
+      if (!data.user) {
+        navigate({ to: "/auth", search: { redirect: "/checkout" } });
+      } else {
+        setCheckingAuth(false);
+      }
+    });
+  }, [navigate]);
 
   const update = (key: keyof typeof form, value: string) =>
     setForm((prev) => ({ ...prev, [key]: value }));
@@ -87,6 +78,14 @@ if (checkingAuth) {
     clear();
     navigate({ to: "/order/$id", params: { id: data.id } });
   };
+
+  if (checkingAuth) {
+    return (
+      <StoreLayout>
+        <div className="py-24 text-center text-sm text-muted-foreground">Checking your account…</div>
+      </StoreLayout>
+    );
+  }
 
   return (
     <StoreLayout>
@@ -194,4 +193,4 @@ if (checkingAuth) {
       </div>
     </StoreLayout>
   );
-}
+                }
