@@ -1,6 +1,9 @@
 import { Link } from "@tanstack/react-router";
-import { Menu, ShoppingBag } from "lucide-react";
+import { Menu, ShoppingBag, User } from "lucide-react";
+import { useEffect, useState } from "react";
+import { supabase } from "@/integrations/supabase/client";
 import { useState, type ReactNode } from "react";
+
 
 import { Button } from "@/components/ui/button";
 import { useCart } from "@/lib/cart";
