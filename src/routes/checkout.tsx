@@ -28,6 +28,7 @@ function CheckoutPage() {
   const { items, subtotal, clear } = useCart();
   const navigate = useNavigate();
   const [checkingAuth, setCheckingAuth] = useState(true);
+  const [userId, setUserId] = useState<string | null>(null);
   const [saving, setSaving] = useState(false);
   const [form, setForm] = useState({ name: "", phone: "", address: "", pincode: "" });
 
@@ -50,6 +51,7 @@ function CheckoutPage() {
       if (!data.user) {
         navigate({ to: "/auth", search: { redirect: "/checkout" } });
       } else {
+        setUserId(data.user.id);
         setCheckingAuth(false);
       }
     });
@@ -79,6 +81,7 @@ function CheckoutPage() {
         total: subtotal,
         payment_status: "pending",
         order_status: "pending",
+        user_id: userId,
       })
       .select("id")
       .single();
@@ -206,4 +209,4 @@ function CheckoutPage() {
       </div>
     </StoreLayout>
   );
-                }
+}
