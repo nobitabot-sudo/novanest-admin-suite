@@ -31,16 +31,25 @@ function AccountPage() {
   const [checkingAuth, setCheckingAuth] = useState(true);
   const [email, setEmail] = useState<string | null>(null);
   const [userId, setUserId] = useState<string | null>(null);
+  const [isAdmin, setIsAdmin] = useState(false);
 
   useEffect(() => {
-    supabase.auth.getUser().then(({ data }) => {
+    supabase.auth.getUser().then(async ({ data }) => {
       if (!data.user) {
         navigate({ to: "/auth", search: { redirect: "/account" } });
-      } else {
-        setEmail(data.user.email ?? null);
-        setUserId(data.user.id);
-        setCheckingAuth(false);
+        return;
       }
+      setEmail(data.user.email ?? null);
+      setUserId(data.user.id);
+
+      const { data: roleRow } = await supabase
+        .from("user_roles")
+        .select("role")
+        .eq("user_id", data.user.id)
+        .eq("role", "admin")
+        .maybeSingle();
+      setIsAdmin(Boolean(roleRow));
+      setCheckingAuth(false);
     });
   }, [navigate]);
 
@@ -81,9 +90,16 @@ function AccountPage() {
             <p className="text-sm text-muted-foreground">Signed in as</p>
             <p className="font-medium">{email}</p>
           </div>
-          <Button variant="outline" onClick={signOut}>
-            Sign out
-          </Button>
+          <div className="flex items-center gap-2">
+            {isAdmin && (
+              <Link to="/admin">
+                <Button variant="secondary">Admin panel</Button>
+              </Link>
+            )}
+            <Button variant="outline" onClick={signOut}>
+              Sign out
+            </Button>
+          </div>
         </div>
 
         <h2 className="mt-10 text-2xl">Your orders</h2>
