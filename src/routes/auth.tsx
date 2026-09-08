@@ -8,13 +8,18 @@ import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
 import { supabase } from "@/integrations/supabase/client";
 
+type AuthSearch = { redirect?: string | undefined };
+
 export const Route = createFileRoute("/auth")({
+  validateSearch: (search: Record<string, unknown>): AuthSearch => ({
+    redirect: typeof search['redirect'] === "string" ? search['redirect'] : undefined,
+  }),
   head: () => ({
     meta: [
-      { title: "Admin sign in — NovaNest" },
-      { name: "description", content: "Sign in to manage NovaNest products and orders." },
-      { property: "og:title", content: "Admin sign in — NovaNest" },
-      { property: "og:description", content: "Sign in to the NovaNest admin panel." },
+      { title: "Sign in — NovaNest" },
+      { name: "description", content: "Sign in or create your NovaNest account." },
+      { property: "og:title", content: "Sign in — NovaNest" },
+      { property: "og:description", content: "Sign in or create your NovaNest account." },
       { name: "robots", content: "noindex" },
     ],
   }),
@@ -23,6 +28,7 @@ export const Route = createFileRoute("/auth")({
 
 function AuthPage() {
   const navigate = useNavigate();
+  const { redirect } = Route.useSearch();
   const [email, setEmail] = useState("");
   const [password, setPassword] = useState("");
   const [mode, setMode] = useState<"signin" | "signup">("signin");
@@ -36,7 +42,7 @@ function AuthPage() {
         const { error } = await supabase.auth.signUp({
           email,
           password,
-          options: { emailRedirectTo: `${window.location.origin}/admin` },
+          options: { emailRedirectTo: `${window.location.origin}${redirect ?? "/"}` },
         });
         if (error) throw error;
         toast.success("Account created. You can sign in now.");
@@ -44,7 +50,7 @@ function AuthPage() {
       } else {
         const { error } = await supabase.auth.signInWithPassword({ email, password });
         if (error) throw error;
-        navigate({ to: "/admin" });
+        navigate({ to: redirect ?? "/" });
       }
     } catch (error) {
       toast.error(error instanceof Error ? error.message : "Something went wrong");
@@ -56,9 +62,9 @@ function AuthPage() {
   return (
     <StoreLayout>
       <div className="mx-auto w-full max-w-md px-5 py-20">
-        <h1 className="font-display text-4xl">Admin access</h1>
+        <h1 className="font-display text-4xl">{mode === "signin" ? "Sign in" : "Create account"}</h1>
         <p className="mt-2 text-sm text-muted-foreground">
-          Sign in to manage products and orders.
+          Sign in to checkout faster and track your orders.
         </p>
         <form onSubmit={onSubmit} className="mt-8 space-y-4 rounded-2xl border border-border bg-surface p-6 shadow-soft">
           <div className="space-y-2">
