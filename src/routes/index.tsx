@@ -6,6 +6,7 @@ import { StoreLayout } from "@/components/store/StoreLayout";
 import { Button } from "@/components/ui/button";
 import { useActiveProducts } from "@/hooks/useProducts";
 import { CATEGORIES } from "@/lib/store";
+import { Carousel, CarouselContent, CarouselItem, CarouselNext, CarouselPrevious } from "@/components/ui/carousel";
 
 export const Route = createFileRoute("/")({
   head: () => ({
@@ -97,11 +98,23 @@ function HomePage() {
             View all
           </Link>
         </div>
-        <div className="mt-8 grid gap-5 sm:grid-cols-2 lg:grid-cols-3">
-          {isLoading
-            ? Array.from({ length: 6 }).map((_, index) => <ProductCardSkeleton key={index} />)
-            : featured.map((product) => <ProductCard key={product.id} product={product} />)}
-        </div>
+        <Carousel opts={{ align: "start", dragFree: true }} className="mt-8">
+  <CarouselContent>
+    {isLoading
+      ? Array.from({ length: 6 }).map((_, i) => (
+          <CarouselItem key={i} className="basis-[70%] sm:basis-1/2 lg:basis-1/3">
+            <ProductCardSkeleton />
+          </CarouselItem>
+        ))
+      : featured.map((product) => (
+          <CarouselItem key={product.id} className="basis-[70%] sm:basis-1/2 lg:basis-1/3">
+            <ProductCard product={product} />
+          </CarouselItem>
+        ))}
+  </CarouselContent>
+  <CarouselPrevious className="hidden sm:flex" />
+  <CarouselNext className="hidden sm:flex" />
+</Carousel>
       </section>
 
       <section className="mx-auto w-full max-w-6xl px-5 pt-20">
