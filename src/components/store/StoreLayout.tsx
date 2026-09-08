@@ -38,13 +38,26 @@ function AccountButton() {
     return () => data.subscription.unsubscribe();
   }, []);
 
+  if (email) {
+    return (
+      <button
+        type="button"
+        title={`Signed in as ${email} — tap to sign out`}
+        onClick={() => supabase.auth.signOut()}
+        className="inline-flex h-10 w-10 items-center justify-center rounded-full border border-border bg-surface transition-colors hover:bg-accent"
+      >
+        <User className="h-4 w-4 text-primary" />
+      </button>
+    );
+  }
+
   return (
     <Link
-      to={email ? "/account" : "/auth"}
-      aria-label={email ? "Your account" : "Sign in"}
+      to="/auth"
+      aria-label="Sign in"
       className="inline-flex h-10 w-10 items-center justify-center rounded-full border border-border bg-surface transition-colors hover:bg-accent"
     >
-      <User className={`h-4 w-4 ${email ? "text-primary" : ""}`} />
+      <User className="h-4 w-4" />
     </Link>
   );
 }
