@@ -1,6 +1,7 @@
 import { Link, createFileRoute, useNavigate } from "@tanstack/react-router";
 import { useState } from "react";
 import { toast } from "sonner";
+import { useEffect, useState } from "react";
 
 import { StoreLayout } from "@/components/store/StoreLayout";
 import { Button } from "@/components/ui/button";
@@ -26,6 +27,25 @@ export const Route = createFileRoute("/checkout")({
 const UPI_ID = "novanest@upi";
 
 function CheckoutPage() {
+  const [checkingAuth, setCheckingAuth] = useState(true);
+
+useEffect(() => {
+  supabase.auth.getUser().then(({ data }) => {
+    if (!data.user) {
+      navigate({ to: "/auth", search: { redirect: "/checkout" } });
+    } else {
+      setCheckingAuth(false);
+    }
+  });
+}, [navigate]);
+
+if (checkingAuth) {
+  return (
+    <StoreLayout>
+      <div className="py-24 text-center text-sm text-muted-foreground">Checking your account…</div>
+    </StoreLayout>
+  );
+}
   const { items, subtotal, clear } = useCart();
   const navigate = useNavigate();
   const [saving, setSaving] = useState(false);
