@@ -1,4 +1,5 @@
 import { Link, createFileRoute, useNavigate } from "@tanstack/react-router";
+import { useQuery } from "@tanstack/react-query";
 import { useEffect, useState } from "react";
 import { toast } from "sonner";
 
@@ -23,14 +24,26 @@ export const Route = createFileRoute("/checkout")({
   component: CheckoutPage,
 });
 
-const UPI_ID = "novanest@upi";
-
 function CheckoutPage() {
   const { items, subtotal, clear } = useCart();
   const navigate = useNavigate();
   const [checkingAuth, setCheckingAuth] = useState(true);
   const [saving, setSaving] = useState(false);
   const [form, setForm] = useState({ name: "", phone: "", address: "", pincode: "" });
+
+  const { data: upiId } = useQuery({
+    queryKey: ["settings", "upi_id"],
+    queryFn: async () => {
+      const { data, error } = await supabase
+        .from("settings")
+        .select("value")
+        .eq("key", "upi_id")
+        .maybeSingle();
+      if (error) throw error;
+      return data?.value || "novanest@upi";
+    },
+    initialData: "novanest@upi",
+  });
 
   useEffect(() => {
     supabase.auth.getUser().then(({ data }) => {
@@ -45,7 +58,7 @@ function CheckoutPage() {
   const update = (key: keyof typeof form, value: string) =>
     setForm((prev) => ({ ...prev, [key]: value }));
 
-  const upiLink = `upi://pay?pa=${UPI_ID}&pn=NovaNest&am=${subtotal}&cu=INR`;
+  const upiLink = `upi://pay?pa=${upiId}&pn=NovaNest&am=${subtotal}&cu=INR`;
   const qrSrc = `https://api.qrserver.com/v1/create-qr-code/?size=220x220&data=${encodeURIComponent(upiLink)}`;
 
   const placeOrder = async (event: React.FormEvent) => {
@@ -159,7 +172,7 @@ function CheckoutPage() {
                   />
                   <div className="text-sm">
                     <p className="text-muted-foreground">UPI ID</p>
-                    <p className="font-medium">{UPI_ID}</p>
+                    <p className="font-medium">{upiId}</p>
                     <a href={upiLink} className="mt-3 inline-block text-primary hover:underline">
                       Open UPI app →
                     </a>
