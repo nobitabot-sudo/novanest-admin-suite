@@ -50,7 +50,22 @@ function AuthPage() {
       } else {
         const { error } = await supabase.auth.signInWithPassword({ email, password });
         if (error) throw error;
-        navigate({ to: redirect ?? "/" });
+
+        let destination = redirect;
+        if (!destination) {
+          const { data: userData } = await supabase.auth.getUser();
+          const uid = userData.user?.id;
+          if (uid) {
+            const { data: roleRow } = await supabase
+              .from("user_roles")
+              .select("role")
+              .eq("user_id", uid)
+              .eq("role", "admin")
+              .maybeSingle();
+            if (roleRow) destination = "/admin";
+          }
+        }
+        navigate({ to: destination ?? "/" });
       }
     } catch (error) {
       toast.error(error instanceof Error ? error.message : "Something went wrong");
