@@ -14,6 +14,42 @@ export type Database = {
   }
   public: {
     Tables: {
+      banners: {
+        Row: {
+          active: boolean
+          created_at: string
+          id: string
+          image_url: string
+          link_url: string
+          sort_order: number
+          subtitle: string
+          title: string
+          updated_at: string
+        }
+        Insert: {
+          active?: boolean
+          created_at?: string
+          id?: string
+          image_url?: string
+          link_url?: string
+          sort_order?: number
+          subtitle?: string
+          title?: string
+          updated_at?: string
+        }
+        Update: {
+          active?: boolean
+          created_at?: string
+          id?: string
+          image_url?: string
+          link_url?: string
+          sort_order?: number
+          subtitle?: string
+          title?: string
+          updated_at?: string
+        }
+        Relationships: []
+      }
       orders: {
         Row: {
           address: string
@@ -22,11 +58,14 @@ export type Database = {
           id: string
           items: Json
           order_status: string
+          payment_proof_url: string
           payment_status: string
           phone: string
           pincode: string
           total: number
           updated_at: string
+          user_id: string | null
+          utr_id: string
         }
         Insert: {
           address: string
@@ -35,11 +74,14 @@ export type Database = {
           id?: string
           items?: Json
           order_status?: string
+          payment_proof_url?: string
           payment_status?: string
           phone: string
           pincode: string
           total?: number
           updated_at?: string
+          user_id?: string | null
+          utr_id?: string
         }
         Update: {
           address?: string
@@ -48,11 +90,14 @@ export type Database = {
           id?: string
           items?: Json
           order_status?: string
+          payment_proof_url?: string
           payment_status?: string
           phone?: string
           pincode?: string
           total?: number
           updated_at?: string
+          user_id?: string | null
+          utr_id?: string
         }
         Relationships: []
       }
@@ -64,11 +109,13 @@ export type Database = {
           description: string
           id: string
           image_url: string
+          images: Json
           name: string
           price: number
           status: string
           stock: number
           updated_at: string
+          video_url: string
         }
         Insert: {
           category: string
@@ -77,11 +124,13 @@ export type Database = {
           description?: string
           id?: string
           image_url?: string
+          images?: Json
           name: string
           price?: number
           status?: string
           stock?: number
           updated_at?: string
+          video_url?: string
         }
         Update: {
           category?: string
@@ -90,11 +139,31 @@ export type Database = {
           description?: string
           id?: string
           image_url?: string
+          images?: Json
           name?: string
           price?: number
           status?: string
           stock?: number
           updated_at?: string
+          video_url?: string
+        }
+        Relationships: []
+      }
+      settings: {
+        Row: {
+          key: string
+          updated_at: string
+          value: string
+        }
+        Insert: {
+          key: string
+          updated_at?: string
+          value?: string
+        }
+        Update: {
+          key?: string
+          updated_at?: string
+          value?: string
         }
         Relationships: []
       }

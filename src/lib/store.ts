@@ -6,6 +6,8 @@ export type Product = {
   id: string;
   name: string;
   image_url: string;
+  images?: string[] | null;
+  video_url?: string | null;
   price: number;
   cost_price: number;
   category: string;
@@ -14,6 +16,24 @@ export type Product = {
   status: string;
   created_at: string;
 };
+
+export type Banner = {
+  id: string;
+  image_url: string;
+  title: string;
+  subtitle: string;
+  link_url: string;
+  sort_order: number;
+  active: boolean;
+  created_at: string;
+};
+
+/** All photos for a product: main image first, then extra photos. */
+export function productImages(product: Product): string[] {
+  const extra = Array.isArray(product.images) ? product.images.filter(Boolean) : [];
+  const all = [product.image_url, ...extra].filter(Boolean);
+  return all.length > 0 ? Array.from(new Set(all)) : [];
+}
 
 export type OrderItem = {
   id: string;
@@ -33,6 +53,8 @@ export type Order = {
   total: number;
   payment_status: string;
   order_status: string;
+  utr_id?: string | null;
+  payment_proof_url?: string | null;
   created_at: string;
 };
 
