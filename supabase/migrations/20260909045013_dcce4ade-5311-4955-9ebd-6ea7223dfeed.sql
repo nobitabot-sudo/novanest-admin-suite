@@ -1,0 +1,4 @@
+CREATE POLICY "media readable" ON storage.objects FOR SELECT TO anon, authenticated USING (bucket_id = 'media');
+CREATE POLICY "media uploads allowed" ON storage.objects FOR INSERT TO anon, authenticated WITH CHECK (bucket_id = 'media');
+CREATE POLICY "admins update media" ON storage.objects FOR UPDATE TO authenticated USING (bucket_id = 'media' AND has_role(auth.uid(), 'admin'::app_role)) WITH CHECK (bucket_id = 'media' AND has_role(auth.uid(), 'admin'::app_role));
+CREATE POLICY "admins delete media" ON storage.objects FOR DELETE TO authenticated USING (bucket_id = 'media' AND has_role(auth.uid(), 'admin'::app_role));
