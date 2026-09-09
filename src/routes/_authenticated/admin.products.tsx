@@ -1,6 +1,7 @@
 import { createFileRoute } from "@tanstack/react-router";
 import { useMutation, useQuery, useQueryClient } from "@tanstack/react-query";
-import { useState } from "react";
+import { useRef, useState } from "react";
+import { Loader2, X } from "lucide-react";
 import { toast } from "sonner";
 
 import { Button } from "@/components/ui/button";
@@ -22,6 +23,7 @@ import {
   SelectValue,
 } from "@/components/ui/select";
 import { supabase } from "@/integrations/supabase/client";
+import { uploadMedia } from "@/lib/upload";
 import { CATEGORIES, formatPrice, type Product } from "@/lib/store";
 
 export const Route = createFileRoute("/_authenticated/admin/products")({
@@ -31,6 +33,8 @@ export const Route = createFileRoute("/_authenticated/admin/products")({
 type Draft = {
   name: string;
   image_url: string;
+  images: string[];
+  video_url: string;
   price: string;
   cost_price: string;
   category: string;
@@ -42,6 +46,8 @@ type Draft = {
 const EMPTY: Draft = {
   name: "",
   image_url: "",
+  images: [],
+  video_url: "",
   price: "",
   cost_price: "",
   category: CATEGORIES[0],
@@ -55,6 +61,12 @@ function ProductsPage() {
   const [open, setOpen] = useState(false);
   const [editingId, setEditingId] = useState<string | null>(null);
   const [draft, setDraft] = useState<Draft>(EMPTY);
+  const [uploadingCover, setUploadingCover] = useState(false);
+  const [uploadingGallery, setUploadingGallery] = useState(false);
+  const [uploadingVideo, setUploadingVideo] = useState(false);
+  const coverInputRef = useRef<HTMLInputElement>(null);
+  const galleryInputRef = useRef<HTMLInputElement>(null);
+  const videoInputRef = useRef<HTMLInputElement>(null);
 
   const { data: products, isLoading } = useQuery({
     queryKey: ["admin", "products"],
@@ -78,6 +90,8 @@ function ProductsPage() {
       const payload = {
         name: draft.name,
         image_url: draft.image_url,
+        images: draft.images,
+        video_url: draft.video_url,
         price: Number(draft.price || 0),
         cost_price: Number(draft.cost_price || 0),
         category: draft.category,
@@ -133,6 +147,8 @@ function ProductsPage() {
     setDraft({
       name: product.name,
       image_url: product.image_url,
+      images: product.images ?? [],
+      video_url: product.video_url ?? "",
       price: String(product.price),
       cost_price: String(product.cost_price),
       category: product.category,
@@ -141,6 +157,50 @@ function ProductsPage() {
       status: product.status,
     });
     setOpen(true);
+  }
+
+  async function handleCoverUpload(file: File | undefined) {
+    if (!file) return;
+    setUploadingCover(true);
+    try {
+      const url = await uploadMedia(file, "products/cover");
+      setDraft((prev) => ({ ...prev, image_url: url }));
+    } catch (error) {
+      toast.error(error instanceof Error ? error.message : "Upload failed");
+    } finally {
+      setUploadingCover(false);
+    }
+  }
+
+  async function handleGalleryUpload(fileList: FileList | null) {
+    if (!fileList || fileList.length === 0) return;
+    const files = Array.from(fileList).slice(0, 3 - draft.images.length);
+    if (files.length === 0) {
+      toast.error("You can add up to 3 extra photos.");
+      return;
+    }
+    setUploadingGallery(true);
+    try {
+      const urls = await Promise.all(files.map((file) => uploadMedia(file, "products/gallery")));
+      setDraft((prev) => ({ ...prev, images: [...prev.images, ...urls] }));
+    } catch (error) {
+      toast.error(error instanceof Error ? error.message : "Upload failed");
+    } finally {
+      setUploadingGallery(false);
+    }
+  }
+
+  async function handleVideoUpload(file: File | undefined) {
+    if (!file) return;
+    setUploadingVideo(true);
+    try {
+      const url = await uploadMedia(file, "products/video");
+      setDraft((prev) => ({ ...prev, video_url: url }));
+    } catch (error) {
+      toast.error(error instanceof Error ? error.message : "Upload failed");
+    } finally {
+      setUploadingVideo(false);
+    }
   }
 
   return (
@@ -233,8 +293,106 @@ function ProductsPage() {
               <Input id="name" required value={draft.name} onChange={(e) => setDraft({ ...draft, name: e.target.value })} />
             </div>
             <div className="space-y-2">
-              <Label htmlFor="image">Image URL</Label>
-              <Input id="image" value={draft.image_url} onChange={(e) => setDraft({ ...draft, image_url: e.target.value })} />
+              <Label htmlFor="image">Cover photo</Label>
+              <div className="flex items-center gap-3">
+                {draft.image_url && (
+                  <img src={draft.image_url} alt="Cover" className="h-14 w-14 rounded-lg object-cover" />
+                )}
+                <Input
+                  id="image"
+                  placeholder="Paste a URL or upload"
+                  value={draft.image_url}
+                  onChange={(e) => setDraft({ ...draft, image_url: e.target.value })}
+                />
+                <input
+                  ref={coverInputRef}
+                  type="file"
+                  accept="image/*"
+                  className="hidden"
+                  onChange={(e) => handleCoverUpload(e.target.files?.[0])}
+                />
+                <Button
+                  type="button"
+                  variant="outline"
+                  disabled={uploadingCover}
+                  onClick={() => coverInputRef.current?.click()}
+                >
+                  {uploadingCover ? <Loader2 className="h-4 w-4 animate-spin" /> : "Upload"}
+                </Button>
+              </div>
+            </div>
+
+            <div className="space-y-2">
+              <Label>Extra photos ({draft.images.length}/3)</Label>
+              <div className="flex flex-wrap items-center gap-3">
+                {draft.images.map((url, index) => (
+                  <div key={url} className="relative">
+                    <img src={url} alt="" className="h-16 w-16 rounded-lg object-cover" />
+                    <button
+                      type="button"
+                      onClick={() =>
+                        setDraft((prev) => ({
+                          ...prev,
+                          images: prev.images.filter((_, i) => i !== index),
+                        }))
+                      }
+                      className="absolute -right-1 -top-1 rounded-full bg-foreground p-0.5 text-background"
+                    >
+                      <X className="h-3 w-3" />
+                    </button>
+                  </div>
+                ))}
+                {draft.images.length < 3 && (
+                  <>
+                    <input
+                      ref={galleryInputRef}
+                      type="file"
+                      accept="image/*"
+                      multiple
+                      className="hidden"
+                      onChange={(e) => handleGalleryUpload(e.target.files)}
+                    />
+                    <Button
+                      type="button"
+                      variant="outline"
+                      size="sm"
+                      disabled={uploadingGallery}
+                      onClick={() => galleryInputRef.current?.click()}
+                    >
+                      {uploadingGallery ? <Loader2 className="h-4 w-4 animate-spin" /> : "Add photos"}
+                    </Button>
+                  </>
+                )}
+              </div>
+            </div>
+
+            <div className="space-y-2">
+              <Label>Product video (optional)</Label>
+              {draft.video_url && (
+                <video src={draft.video_url} controls className="h-32 rounded-lg" />
+              )}
+              <div className="flex items-center gap-3">
+                <Input
+                  placeholder="Paste a URL or upload"
+                  value={draft.video_url}
+                  onChange={(e) => setDraft({ ...draft, video_url: e.target.value })}
+                />
+                <input
+                  ref={videoInputRef}
+                  type="file"
+                  accept="video/*"
+                  className="hidden"
+                  onChange={(e) => handleVideoUpload(e.target.files?.[0])}
+                />
+                <Button
+                  type="button"
+                  variant="outline"
+                  disabled={uploadingVideo}
+                  onClick={() => videoInputRef.current?.click()}
+                >
+                  {uploadingVideo ? <Loader2 className="h-4 w-4 animate-spin" /> : "Upload"}
+                </Button>
+              </div>
             </div>
             <div className="grid gap-4 sm:grid-cols-2">
               <div className="space-y-2">
