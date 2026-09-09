@@ -1,8 +1,9 @@
 import { Link, createFileRoute } from "@tanstack/react-router";
-import { ArrowRight, PackageCheck, ShieldCheck, Truck } from "lucide-react";
+import { ArrowRight, Lamp, Cpu, ChefHat, PawPrint, Sofa, PackageCheck, ShieldCheck, Truck } from "lucide-react";
 
 import { ProductCard, ProductCardSkeleton } from "@/components/store/ProductCard";
 import { StoreLayout } from "@/components/store/StoreLayout";
+import { OfferBanner } from "@/components/store/OfferBanner";
 import { Button } from "@/components/ui/button";
 import { useActiveProducts } from "@/hooks/useProducts";
 import { CATEGORIES } from "@/lib/store";
@@ -32,6 +33,14 @@ const PERKS = [
   { icon: ShieldCheck, title: "7-day returns", body: "Changed your mind? Send it back." },
   { icon: PackageCheck, title: "Curated stock", body: "Every piece checked before it ships." },
 ];
+
+const CATEGORY_ICONS: Record<string, typeof Sofa> = {
+  "Home Decor": Sofa,
+  Gadgets: Cpu,
+  Kitchen: ChefHat,
+  Pet: PawPrint,
+  Lighting: Lamp,
+};
 
 function HomePage() {
   const { data: products, isLoading } = useActiveProducts();
@@ -77,6 +86,8 @@ function HomePage() {
         </div>
       </section>
 
+      <OfferBanner />
+
       <section className="mx-auto w-full max-w-6xl px-5">
         <div className="grid gap-4 sm:grid-cols-3">
           {PERKS.map((perk) => (
@@ -120,16 +131,20 @@ function HomePage() {
       <section className="mx-auto w-full max-w-6xl px-5 pt-20">
         <h2 className="text-3xl sm:text-4xl">Shop by category</h2>
         <div className="mt-8 grid gap-4 sm:grid-cols-3 lg:grid-cols-5">
-          {CATEGORIES.map((category) => (
-            <Link
-              key={category}
-              to="/shop"
-              search={{ category }}
-              className="card-soft card-hover flex h-28 items-end p-5 text-sm font-medium"
-            >
-              {category}
-            </Link>
-          ))}
+          {CATEGORIES.map((category) => {
+            const Icon = CATEGORY_ICONS[category] ?? Sofa;
+            return (
+              <Link
+                key={category}
+                to="/shop"
+                search={{ category }}
+                className="card-soft card-hover flex h-32 flex-col justify-between p-5"
+              >
+                <Icon className="h-6 w-6 text-primary" />
+                <span className="text-sm font-medium">{category}</span>
+              </Link>
+            );
+          })}
         </div>
       </section>
     </StoreLayout>
