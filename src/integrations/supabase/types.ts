@@ -27,6 +27,7 @@ export type Database = {
           pincode: string
           total: number
           updated_at: string
+          user_id: string | null
         }
         Insert: {
           address: string
@@ -40,6 +41,7 @@ export type Database = {
           pincode: string
           total?: number
           updated_at?: string
+          user_id?: string | null
         }
         Update: {
           address?: string
@@ -53,6 +55,7 @@ export type Database = {
           pincode?: string
           total?: number
           updated_at?: string
+          user_id?: string | null
         }
         Relationships: []
       }
@@ -95,6 +98,24 @@ export type Database = {
           status?: string
           stock?: number
           updated_at?: string
+        }
+        Relationships: []
+      }
+      settings: {
+        Row: {
+          key: string
+          updated_at: string
+          value: string
+        }
+        Insert: {
+          key: string
+          updated_at?: string
+          value?: string
+        }
+        Update: {
+          key?: string
+          updated_at?: string
+          value?: string
         }
         Relationships: []
       }
