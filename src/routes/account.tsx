@@ -60,7 +60,7 @@ function AccountPage() {
       const { data, error } = await supabase
         .from("orders")
         .select("id, created_at, total, payment_status, order_status")
-        .eq("user_id", userId)
+        .eq("user_id", userId as string)
         .order("created_at", { ascending: false });
       if (error) throw error;
       return (data ?? []) as OrderRow[];
