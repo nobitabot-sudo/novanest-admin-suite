@@ -42,6 +42,14 @@ const CATEGORY_ICONS: Record<string, typeof Sofa> = {
   Lighting: Lamp,
 };
 
+const CATEGORY_TINTS: Record<string, string> = {
+  "Home Decor": "bg-rose-50",
+  Gadgets: "bg-sky-50",
+  Kitchen: "bg-lime-50",
+  Pet: "bg-orange-50",
+  Lighting: "bg-violet-50",
+};
+
 function HomePage() {
   const { data: products, isLoading } = useActiveProducts();
   const list = products ?? [];
@@ -138,12 +146,13 @@ function HomePage() {
         <div className="mt-8 grid gap-4 sm:grid-cols-3 lg:grid-cols-5">
           {CATEGORIES.map((category) => {
             const Icon = CATEGORY_ICONS[category] ?? Sofa;
+            const tint = CATEGORY_TINTS[category] ?? "bg-surface";
             return (
               <Link
                 key={category}
                 to="/shop"
                 search={{ category }}
-                className="card-soft card-hover flex h-32 flex-col justify-between p-5"
+                className={`card-hover flex h-32 flex-col justify-between rounded-2xl border border-border p-5 ${tint}`}
               >
                 <Icon className="h-6 w-6 text-primary" />
                 <span className="text-sm font-medium">{category}</span>
