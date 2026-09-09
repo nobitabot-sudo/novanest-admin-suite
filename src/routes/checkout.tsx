@@ -1,6 +1,6 @@
 import { Link, createFileRoute, useNavigate } from "@tanstack/react-router";
 import { useQuery } from "@tanstack/react-query";
-import { useEffect, useState } from "react";
+import { useState } from "react";
 import { toast } from "sonner";
 
 import { StoreLayout } from "@/components/store/StoreLayout";
@@ -11,12 +11,16 @@ import { Textarea } from "@/components/ui/textarea";
 import { supabase } from "@/integrations/supabase/client";
 import { useCart } from "@/lib/cart";
 import { formatPrice } from "@/lib/store";
+import { uploadMedia } from "@/lib/upload";
 
 export const Route = createFileRoute("/checkout")({
   head: () => ({
     meta: [
       { title: "Checkout — NovaNest" },
-      { name: "description", content: "Enter your delivery details and pay by UPI to place your NovaNest order." },
+      {
+        name: "description",
+        content: "Enter your delivery details and pay by UPI to place your NovaNest order.",
+      },
       { property: "og:title", content: "Checkout — NovaNest" },
       { property: "og:description", content: "Delivery details and UPI payment for your order." },
     ],
@@ -27,10 +31,19 @@ export const Route = createFileRoute("/checkout")({
 function CheckoutPage() {
   const { items, subtotal, clear } = useCart();
   const navigate = useNavigate();
-  const [checkingAuth, setCheckingAuth] = useState(true);
-  const [userId, setUserId] = useState<string | null>(null);
   const [saving, setSaving] = useState(false);
-  const [form, setForm] = useState({ name: "", phone: "", address: "", pincode: "" });
+  const [proofFile, setProofFile] = useState<File | null>(null);
+  const [form, setForm] = useState({
+    name: "",
+    phone: "",
+    email: "",
+    address: "",
+    city: "",
+    state: "",
+    pincode: "",
+    landmark: "",
+    utr: "",
+  });
 
   const { data: upiId } = useQuery({
     queryKey: ["settings", "upi_id"],
@@ -46,22 +59,12 @@ function CheckoutPage() {
     initialData: "novanest@upi",
   });
 
-  useEffect(() => {
-    supabase.auth.getUser().then(({ data }) => {
-      if (!data.user) {
-        navigate({ to: "/auth", search: { redirect: "/checkout" } });
-      } else {
-        setUserId(data.user.id);
-        setCheckingAuth(false);
-      }
-    });
-  }, [navigate]);
-
   const update = (key: keyof typeof form, value: string) =>
     setForm((prev) => ({ ...prev, [key]: value }));
 
-  const upiLink = `upi://pay?pa=${upiId}&pn=NovaNest&am=${subtotal}&cu=INR`;
-  const qrSrc = `https://api.qrserver.com/v1/create-qr-code/?size=220x220&data=${encodeURIComponent(upiLink)}`;
+  const amount = subtotal.toFixed(2);
+  const upiLink = `upi://pay?pa=${encodeURIComponent(upiId)}&pn=NovaNest&am=${amount}&cu=INR&tn=${encodeURIComponent("NovaNest order")}`;
+  const qrSrc = `https://api.qrserver.com/v1/create-qr-code/?size=260x260&data=${encodeURIComponent(upiLink)}`;
 
   const placeOrder = async (event: React.FormEvent) => {
     event.preventDefault();
@@ -69,44 +72,60 @@ function CheckoutPage() {
       toast.error("Your cart is empty.");
       return;
     }
-    setSaving(true);
-    const { data, error } = await supabase
-      .from("orders")
-      .insert({
-        customer_name: form.name,
-        phone: form.phone,
-        address: form.address,
-        pincode: form.pincode,
-        items,
-        total: subtotal,
-        payment_status: "pending",
-        order_status: "pending",
-        user_id: userId,
-      })
-      .select("id")
-      .single();
-    setSaving(false);
-
-    if (error || !data) {
-      toast.error("We couldn't place your order. Please try again.");
+    if (!form.utr.trim() && !proofFile) {
+      toast.error("Add your UPI reference (UTR) number or upload a payment screenshot.");
       return;
     }
-    clear();
-    navigate({ to: "/order/$id", params: { id: data.id } });
-  };
 
-  if (checkingAuth) {
-    return (
-      <StoreLayout>
-        <div className="py-24 text-center text-sm text-muted-foreground">Checking your account…</div>
-      </StoreLayout>
-    );
-  }
+    setSaving(true);
+    try {
+      let proofUrl = "";
+      if (proofFile) {
+        proofUrl = await uploadMedia(proofFile, "payment-proofs");
+      }
+
+      const { data: userData } = await supabase.auth.getUser();
+
+      const fullAddress = [form.address, form.landmark, form.city, form.state]
+        .filter(Boolean)
+        .join(", ");
+
+      const { data, error } = await supabase
+        .from("orders")
+        .insert({
+          customer_name: form.name,
+          phone: form.email ? `${form.phone} · ${form.email}` : form.phone,
+          address: fullAddress,
+          pincode: form.pincode,
+          items,
+          total: subtotal,
+          payment_status: "pending",
+          order_status: "pending",
+          utr_id: form.utr.trim(),
+          payment_proof_url: proofUrl,
+          user_id: userData.user?.id ?? null,
+        })
+        .select("id")
+        .single();
+
+      if (error || !data) throw error ?? new Error("Order failed");
+
+      clear();
+      navigate({ to: "/order/$id", params: { id: data.id } });
+    } catch {
+      toast.error("We couldn't place your order. Please try again.");
+    } finally {
+      setSaving(false);
+    }
+  };
 
   return (
     <StoreLayout>
       <div className="mx-auto w-full max-w-5xl px-5 py-12">
         <h1 className="text-4xl sm:text-5xl">Checkout</h1>
+        <p className="mt-2 text-sm text-muted-foreground">
+          No account needed — just fill in your details and pay by UPI.
+        </p>
 
         {items.length === 0 ? (
           <div className="card-soft mt-8 p-10 text-center">
@@ -117,70 +136,140 @@ function CheckoutPage() {
           </div>
         ) : (
           <form onSubmit={placeOrder} className="mt-8 grid gap-8 lg:grid-cols-[1fr_340px]">
-            <div className="card-soft space-y-5 p-6">
-              <h2 className="text-xl">Delivery details</h2>
-              <div className="grid gap-4 sm:grid-cols-2">
+            <div className="space-y-6">
+              <div className="card-soft space-y-5 p-6">
+                <h2 className="text-xl">Delivery details</h2>
+                <div className="grid gap-4 sm:grid-cols-2">
+                  <div className="space-y-2">
+                    <Label htmlFor="name">Full name</Label>
+                    <Input
+                      id="name"
+                      required
+                      value={form.name}
+                      onChange={(event) => update("name", event.target.value)}
+                    />
+                  </div>
+                  <div className="space-y-2">
+                    <Label htmlFor="phone">Phone number</Label>
+                    <Input
+                      id="phone"
+                      required
+                      inputMode="tel"
+                      pattern="[0-9+ ]{10,15}"
+                      value={form.phone}
+                      onChange={(event) => update("phone", event.target.value)}
+                    />
+                  </div>
+                </div>
                 <div className="space-y-2">
-                  <Label htmlFor="name">Full name</Label>
+                  <Label htmlFor="email">Email (optional)</Label>
                   <Input
-                    id="name"
-                    required
-                    value={form.name}
-                    onChange={(event) => update("name", event.target.value)}
+                    id="email"
+                    type="email"
+                    value={form.email}
+                    onChange={(event) => update("email", event.target.value)}
                   />
                 </div>
                 <div className="space-y-2">
-                  <Label htmlFor="phone">Phone number</Label>
-                  <Input
-                    id="phone"
+                  <Label htmlFor="address">House / street address</Label>
+                  <Textarea
+                    id="address"
                     required
-                    inputMode="tel"
-                    value={form.phone}
-                    onChange={(event) => update("phone", event.target.value)}
+                    rows={3}
+                    value={form.address}
+                    onChange={(event) => update("address", event.target.value)}
                   />
                 </div>
-              </div>
-              <div className="space-y-2">
-                <Label htmlFor="address">Delivery address</Label>
-                <Textarea
-                  id="address"
-                  required
-                  rows={3}
-                  value={form.address}
-                  onChange={(event) => update("address", event.target.value)}
-                />
-              </div>
-              <div className="space-y-2 sm:w-48">
-                <Label htmlFor="pincode">Pincode</Label>
-                <Input
-                  id="pincode"
-                  required
-                  inputMode="numeric"
-                  value={form.pincode}
-                  onChange={(event) => update("pincode", event.target.value)}
-                />
+                <div className="grid gap-4 sm:grid-cols-2">
+                  <div className="space-y-2">
+                    <Label htmlFor="landmark">Landmark (optional)</Label>
+                    <Input
+                      id="landmark"
+                      value={form.landmark}
+                      onChange={(event) => update("landmark", event.target.value)}
+                    />
+                  </div>
+                  <div className="space-y-2">
+                    <Label htmlFor="city">City</Label>
+                    <Input
+                      id="city"
+                      required
+                      value={form.city}
+                      onChange={(event) => update("city", event.target.value)}
+                    />
+                  </div>
+                  <div className="space-y-2">
+                    <Label htmlFor="state">State</Label>
+                    <Input
+                      id="state"
+                      required
+                      value={form.state}
+                      onChange={(event) => update("state", event.target.value)}
+                    />
+                  </div>
+                  <div className="space-y-2">
+                    <Label htmlFor="pincode">Pincode</Label>
+                    <Input
+                      id="pincode"
+                      required
+                      inputMode="numeric"
+                      pattern="[0-9]{6}"
+                      value={form.pincode}
+                      onChange={(event) => update("pincode", event.target.value)}
+                    />
+                  </div>
+                </div>
               </div>
 
-              <div className="rounded-2xl border border-border bg-muted/40 p-5">
-                <h3 className="text-lg">Pay by UPI</h3>
-                <p className="mt-1 text-sm text-muted-foreground">
-                  Scan the code or open your UPI app, pay {formatPrice(subtotal)}, then place the
-                  order. We verify the payment before dispatch.
+              <div className="card-soft space-y-4 p-6">
+                <h2 className="text-xl">Pay {formatPrice(subtotal)} by UPI</h2>
+                <p className="text-sm text-muted-foreground">
+                  Scan the code or tap the button — the amount is already filled in, so you don't
+                  have to type it. Then share your payment reference below.
                 </p>
-                <div className="mt-4 flex flex-wrap items-center gap-5">
+                <div className="flex flex-wrap items-center gap-6">
                   <img
                     src={qrSrc}
                     alt="UPI payment QR code"
-                    className="h-40 w-40 rounded-xl bg-white p-2"
+                    className="h-44 w-44 rounded-xl bg-white p-2"
                   />
                   <div className="text-sm">
                     <p className="text-muted-foreground">UPI ID</p>
                     <p className="font-medium">{upiId}</p>
-                    <a href={upiLink} className="mt-3 inline-block text-primary hover:underline">
-                      Open UPI app →
+                    <p className="mt-2 text-muted-foreground">Amount</p>
+                    <p className="font-medium">{formatPrice(subtotal)}</p>
+                    <a
+                      href={upiLink}
+                      className="mt-4 inline-flex rounded-full bg-primary px-5 py-2 text-sm font-medium text-primary-foreground"
+                    >
+                      Pay in UPI app
                     </a>
                   </div>
                 </div>
+
+                <div className="grid gap-4 border-t border-border pt-4 sm:grid-cols-2">
+                  <div className="space-y-2">
+                    <Label htmlFor="utr">UPI reference / UTR number</Label>
+                    <Input
+                      id="utr"
+                      placeholder="12-digit reference from your UPI app"
+                      value={form.utr}
+                      onChange={(event) => update("utr", event.target.value)}
+                    />
+                  </div>
+                  <div className="space-y-2">
+                    <Label htmlFor="proof">Or upload payment screenshot</Label>
+                    <Input
+                      id="proof"
+                      type="file"
+                      accept="image/*"
+                      onChange={(event) => setProofFile(event.target.files?.[0] ?? null)}
+                    />
+                  </div>
+                </div>
+                <p className="text-xs text-muted-foreground">
+                  We verify your payment before dispatch. Screenshots are removed once verified.
+                </p>
               </div>
             </div>
 
