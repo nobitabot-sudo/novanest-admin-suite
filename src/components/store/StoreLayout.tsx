@@ -1,5 +1,5 @@
-import { Link } from "@tanstack/react-router";
-import { Menu, ShoppingBag, User } from "lucide-react";
+import { Link, useNavigate } from "@tanstack/react-router";
+import { Menu, Search, ShoppingBag, User } from "lucide-react";
 import { useEffect, useState, type ReactNode } from "react";
 
 import { Button } from "@/components/ui/button";
@@ -49,6 +49,30 @@ function AccountButton() {
   );
 }
 
+function SearchBar({ className = "" }: { className?: string }) {
+  const navigate = useNavigate();
+  const [value, setValue] = useState("");
+
+  return (
+    <form
+      className={`relative ${className}`}
+      onSubmit={(event) => {
+        event.preventDefault();
+        navigate({ to: "/shop", search: (prev) => ({ ...prev, search: value || undefined }) });
+      }}
+    >
+      <Search className="pointer-events-none absolute left-3.5 top-1/2 h-4 w-4 -translate-y-1/2 text-muted-foreground" />
+      <input
+        type="search"
+        value={value}
+        onChange={(event) => setValue(event.target.value)}
+        placeholder="Search for lamps, gadgets, decor…"
+        className="h-10 w-full rounded-full border border-border bg-surface pl-10 pr-4 text-sm outline-none focus:border-primary"
+      />
+    </form>
+  );
+}
+
 export function StoreLayout({ children }: { children: ReactNode }) {
   const [open, setOpen] = useState(false);
 
@@ -60,12 +84,12 @@ export function StoreLayout({ children }: { children: ReactNode }) {
             Nova<span className="text-primary">Nest</span>
           </Link>
 
-          <nav className="hidden items-center gap-8 text-sm text-muted-foreground sm:flex">
+          <nav className="hidden items-center gap-6 text-sm text-muted-foreground lg:flex">
             {NAV.map((item) => (
               <Link
                 key={item.to}
                 to={item.to}
-                className="transition-colors hover:text-foreground"
+                className="shrink-0 transition-colors hover:text-foreground"
                 activeProps={{ className: "text-foreground" }}
                 activeOptions={{ exact: item.to === "/" }}
               >
@@ -74,6 +98,8 @@ export function StoreLayout({ children }: { children: ReactNode }) {
             ))}
           </nav>
 
+          <SearchBar className="hidden max-w-sm flex-1 sm:block" />
+
           <div className="flex items-center gap-2">
             <AccountButton />
             <CartButton />
@@ -81,14 +107,17 @@ export function StoreLayout({ children }: { children: ReactNode }) {
               type="button"
               aria-label="Toggle menu"
               onClick={() => setOpen((value) => !value)}
-              className="inline-flex h-10 w-10 items-center justify-center rounded-full border border-border bg-surface sm:hidden"
+              className="inline-flex h-10 w-10 items-center justify-center rounded-full border border-border bg-surface lg:hidden"
             >
               <Menu className="h-4 w-4" />
             </button>
           </div>
         </div>
+        <div className="border-t border-border/70 px-5 py-2.5 sm:hidden">
+          <SearchBar />
+        </div>
         {open && (
-          <div className="border-t border-border bg-surface px-5 py-3 sm:hidden">
+          <div className="border-t border-border bg-surface px-5 py-3 lg:hidden">
             {NAV.map((item) => (
               <Link
                 key={item.to}
