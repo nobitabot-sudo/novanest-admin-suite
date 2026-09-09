@@ -25,7 +25,7 @@ export async function uploadMedia(file: File, folder: string): Promise<string> {
 /** Extracts the storage path back out of a signed media URL. */
 export function mediaPathFromUrl(url: string): string | null {
   const match = url.match(/\/object\/(?:sign|public)\/media\/([^?]+)/);
-  return match ? decodeURIComponent(match[1]) : null;
+  return match?.[1] ? decodeURIComponent(match[1]) : null;
 }
 
 export async function deleteMedia(url: string) {
