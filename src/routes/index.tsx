@@ -1,5 +1,5 @@
 import { Link, createFileRoute } from "@tanstack/react-router";
-import { ArrowRight, Lamp, Cpu, ChefHat, PawPrint, Sofa, PackageCheck, ShieldCheck, Truck } from "lucide-react";
+import { ArrowRight, Flame, Sparkles, Lamp, Cpu, ChefHat, PawPrint, Sofa, PackageCheck, ShieldCheck, Truck } from "lucide-react";
 
 import { ProductCard, ProductCardSkeleton } from "@/components/store/ProductCard";
 import { StoreLayout } from "@/components/store/StoreLayout";
@@ -44,7 +44,10 @@ const CATEGORY_ICONS: Record<string, typeof Sofa> = {
 
 function HomePage() {
   const { data: products, isLoading } = useActiveProducts();
-  const featured = (products ?? []).slice(0, 6);
+  const list = products ?? [];
+  const featured = list.slice(0, 6);
+  const newArrivals = [...list].reverse().slice(0, 6);
+  const budgetPicks = list.filter((product) => Number(product.price) <= 999).slice(0, 6);
 
   return (
     <StoreLayout>
@@ -88,17 +91,19 @@ function HomePage() {
 
       <OfferBanner />
 
-      <section className="mx-auto w-full max-w-6xl px-5">
-        <div className="grid gap-4 sm:grid-cols-3">
-          {PERKS.map((perk) => (
-            <div key={perk.title} className="card-soft flex items-start gap-3 p-5">
-              <perk.icon className="mt-0.5 h-5 w-5 text-primary" />
-              <div>
-                <p className="text-sm font-medium">{perk.title}</p>
-                <p className="text-sm text-muted-foreground">{perk.body}</p>
+      <section className="mt-14 bg-primary/5 py-14">
+        <div className="mx-auto w-full max-w-6xl px-5">
+          <div className="grid gap-4 sm:grid-cols-3">
+            {PERKS.map((perk) => (
+              <div key={perk.title} className="card-soft flex items-start gap-3 p-5">
+                <perk.icon className="mt-0.5 h-5 w-5 text-primary" />
+                <div>
+                  <p className="text-sm font-medium">{perk.title}</p>
+                  <p className="text-sm text-muted-foreground">{perk.body}</p>
+                </div>
               </div>
-            </div>
-          ))}
+            ))}
+          </div>
         </div>
       </section>
 
@@ -147,6 +152,36 @@ function HomePage() {
           })}
         </div>
       </section>
+
+      {newArrivals.length > 0 && (
+        <section className="mt-20 bg-amber-50 py-16">
+          <div className="mx-auto w-full max-w-6xl px-5">
+            <div className="flex items-center gap-2">
+              <Sparkles className="h-5 w-5 text-amber-600" />
+              <h2 className="text-3xl sm:text-4xl">New arrivals</h2>
+            </div>
+            <div className="mt-8 grid gap-5 sm:grid-cols-2 lg:grid-cols-3">
+              {newArrivals.map((product) => (
+                <ProductCard key={product.id} product={product} />
+              ))}
+            </div>
+          </div>
+        </section>
+      )}
+
+      {budgetPicks.length > 0 && (
+        <section className="mx-auto w-full max-w-6xl px-5 py-16">
+          <div className="flex items-center gap-2">
+            <Flame className="h-5 w-5 text-primary" />
+            <h2 className="text-3xl sm:text-4xl">Under ₹999</h2>
+          </div>
+          <div className="mt-8 grid gap-5 sm:grid-cols-2 lg:grid-cols-3">
+            {budgetPicks.map((product) => (
+              <ProductCard key={product.id} product={product} />
+            ))}
+          </div>
+        </section>
+      )}
     </StoreLayout>
   );
 }
