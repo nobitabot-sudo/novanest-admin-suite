@@ -12,12 +12,13 @@ import {
 import { useActiveProducts } from "@/hooks/useProducts";
 import { CATEGORIES } from "@/lib/store";
 
-type ShopSearch = { category?: string | undefined; sort?: string | undefined };
+type ShopSearch = { category?: string | undefined; sort?: string | undefined; search?: string | undefined };
 
 export const Route = createFileRoute("/shop")({
   validateSearch: (search: Record<string, unknown>): ShopSearch => ({
     category: typeof search['category'] === "string" ? search['category'] : undefined,
     sort: typeof search['sort'] === "string" ? search['sort'] : undefined,
+    search: typeof search['search'] === "string" ? search['search'] : undefined,
   }),
   head: () => ({
     meta: [
@@ -38,12 +39,19 @@ export const Route = createFileRoute("/shop")({
 });
 
 function ShopPage() {
-  const { category, sort } = Route.useSearch();
+  const { category, sort, search } = Route.useSearch();
   const navigate = useNavigate({ from: "/shop" });
   const { data, isLoading } = useActiveProducts();
 
+  const query = search?.trim().toLowerCase();
   const filtered = (data ?? [])
     .filter((product) => !category || product.category === category)
+    .filter(
+      (product) =>
+        !query ||
+        product.name.toLowerCase().includes(query) ||
+        product.description.toLowerCase().includes(query)
+    )
     .sort((a, b) => {
       if (sort === "price-asc") return Number(a.price) - Number(b.price);
       if (sort === "price-desc") return Number(b.price) - Number(a.price);
@@ -53,7 +61,7 @@ function ShopPage() {
   return (
     <StoreLayout>
       <div className="mx-auto w-full max-w-6xl px-5 py-12">
-        <h1 className="text-4xl sm:text-5xl">The collection</h1>
+        <h1 className="text-4xl sm:text-5xl">{query ? `Results for "${search}"` : "The collection"}</h1>
         <p className="mt-3 text-sm text-muted-foreground">
           {isLoading ? "Loading pieces…" : `${filtered.length} pieces available`}
         </p>
