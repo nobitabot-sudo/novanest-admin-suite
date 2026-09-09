@@ -53,6 +53,8 @@ export type Order = {
   total: number;
   payment_status: string;
   order_status: string;
+  utr_id?: string | null;
+  payment_proof_url?: string | null;
   created_at: string;
 };
 
