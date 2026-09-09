@@ -52,7 +52,14 @@ function ProductPage() {
     );
   }
 
-  const gallery = [product.image_url, product.image_url, product.image_url];
+  type MediaItem = { type: "image" | "video"; url: string };
+  const media: MediaItem[] = [
+    { type: "image", url: product.image_url },
+    ...(product.images ?? []).map((url) => ({ type: "image" as const, url })),
+    ...(product.video_url ? [{ type: "video" as const, url: product.video_url }] : []),
+  ].filter((item) => item.url);
+  const gallery = media.length > 0 ? media : [{ type: "image" as const, url: product.image_url }];
+  const outOfStock = product.stock <= 0;
 
   const addToCart = () => {
     cart.add(product, qty);
@@ -61,7 +68,7 @@ function ProductPage() {
 
   return (
     <StoreLayout>
-      <div className="mx-auto w-full max-w-6xl px-5 py-10">
+      <div className="mx-auto w-full max-w-6xl px-5 py-10 pb-28 sm:pb-10">
         <Link to="/shop" className="text-sm text-muted-foreground hover:text-foreground">
           ← Back to shop
         </Link>
@@ -69,24 +76,36 @@ function ProductPage() {
         <div className="mt-6 grid gap-10 lg:grid-cols-2">
           <div>
             <div className="card-soft overflow-hidden">
-              <img
-                src={gallery[active]}
-                alt={product.name}
-                className="aspect-4/5 w-full object-cover"
-              />
+              {gallery[active].type === "video" ? (
+                <video
+                  src={gallery[active].url}
+                  controls
+                  className="aspect-4/5 w-full bg-black object-cover"
+                />
+              ) : (
+                <img
+                  src={gallery[active].url}
+                  alt={product.name}
+                  className="aspect-4/5 w-full object-cover"
+                />
+              )}
             </div>
             <div className="mt-3 flex gap-3">
-              {gallery.map((src, index) => (
+              {gallery.map((item, index) => (
                 <button
-                  key={index}
+                  key={item.url + index}
                   type="button"
                   onClick={() => setActive(index)}
-                  aria-label={`View image ${index + 1}`}
+                  aria-label={item.type === "video" ? "Play video" : `View image ${index + 1}`}
                   className={`h-20 w-20 overflow-hidden rounded-xl border transition-colors ${
                     active === index ? "border-primary" : "border-border"
                   }`}
                 >
-                  <img src={src} alt="" className="h-full w-full object-cover" />
+                  {item.type === "video" ? (
+                    <video src={item.url} muted className="h-full w-full object-cover" />
+                  ) : (
+                    <img src={item.url} alt="" className="h-full w-full object-cover" />
+                  )}
                 </button>
               ))}
             </div>
@@ -129,7 +148,7 @@ function ProductPage() {
               </div>
             </div>
 
-            <div className="mt-6 flex flex-col gap-3 sm:flex-row">
+            <div className="mt-6 hidden gap-3 sm:flex">
               <Button
                 size="lg"
                 className="rounded-full px-8"
@@ -152,6 +171,29 @@ function ProductPage() {
           </div>
         </div>
       </div>
+
+      {!outOfStock && (
+        <div className="fixed inset-x-0 bottom-0 z-30 flex gap-3 border-t border-border bg-background/95 p-4 backdrop-blur sm:hidden">
+          <Button
+            size="lg"
+            variant="outline"
+            className="flex-1 rounded-full"
+            onClick={addToCart}
+          >
+            Add to cart
+          </Button>
+          <Button
+            size="lg"
+            className="flex-1 rounded-full"
+            onClick={() => {
+              cart.add(product, qty);
+              navigate({ to: "/checkout" });
+            }}
+          >
+            Buy now
+          </Button>
+        </div>
+      )}
     </StoreLayout>
   );
 }
