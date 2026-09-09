@@ -11,6 +11,7 @@ import {
   SelectValue,
 } from "@/components/ui/select";
 import { supabase } from "@/integrations/supabase/client";
+import { deleteMedia } from "@/lib/upload";
 import { ORDER_STATUSES, STATUS_LABELS, formatPrice, shortId, type Order } from "@/lib/store";
 
 export const Route = createFileRoute("/_authenticated/admin/orders")({
@@ -38,7 +39,7 @@ function OrdersPage() {
       patch,
     }: {
       id: string;
-      patch: { payment_status?: string; order_status?: string };
+      patch: { payment_status?: string; order_status?: string; payment_proof_url?: string };
     }) => {
       const { error } = await supabase.from("orders").update(patch).eq("id", id);
       if (error) throw error;
@@ -49,6 +50,16 @@ function OrdersPage() {
     },
     onError: (error: Error) => toast.error(error.message),
   });
+
+  async function markPaid(order: Order) {
+    if (order.payment_proof_url) {
+      await deleteMedia(order.payment_proof_url);
+    }
+    update.mutate({
+      id: order.id,
+      patch: { payment_status: "paid", order_status: "payment_verified", payment_proof_url: "" },
+    });
+  }
 
   return (
     <div>
@@ -85,20 +96,32 @@ function OrdersPage() {
                 ))}
               </ul>
 
+              {(order.utr_id || order.payment_proof_url) && order.payment_status !== "paid" && (
+                <div className="mt-3 flex flex-wrap items-center gap-4 rounded-xl border border-border bg-muted/40 p-3">
+                  {order.utr_id && (
+                    <p className="text-sm">
+                      <span className="text-muted-foreground">UTR:</span>{" "}
+                      <span className="font-medium">{order.utr_id}</span>
+                    </p>
+                  )}
+                  {order.payment_proof_url && (
+                    <a href={order.payment_proof_url} target="_blank" rel="noreferrer">
+                      <img
+                        src={order.payment_proof_url}
+                        alt="Payment screenshot"
+                        className="h-16 w-16 rounded-lg border border-border object-cover"
+                      />
+                    </a>
+                  )}
+                </div>
+              )}
+
               <div className="mt-4 flex flex-wrap items-center gap-3">
                 <span className="rounded-full border border-border px-3 py-1 text-xs">
                   Payment: {STATUS_LABELS[order.payment_status] ?? order.payment_status}
                 </span>
                 {order.payment_status !== "paid" && (
-                  <Button
-                    size="sm"
-                    onClick={() =>
-                      update.mutate({
-                        id: order.id,
-                        patch: { payment_status: "paid", order_status: "payment_verified" },
-                      })
-                    }
-                  >
+                  <Button size="sm" onClick={() => markPaid(order)}>
                     Mark as paid
                   </Button>
                 )}
