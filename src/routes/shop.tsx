@@ -58,27 +58,38 @@ function ShopPage() {
           {isLoading ? "Loading pieces…" : `${filtered.length} pieces available`}
         </p>
 
-        <div className="mt-8 flex flex-wrap gap-3">
-          <Select
-            value={category ?? "all"}
-            onValueChange={(value) =>
-              navigate({
-                search: (prev) => ({ ...prev, category: value === "all" ? undefined : value }),
-              })
-            }
-          >
-            <SelectTrigger className="w-45 rounded-full">
-              <SelectValue placeholder="Category" />
-            </SelectTrigger>
-            <SelectContent>
-              <SelectItem value="all">All categories</SelectItem>
-              {CATEGORIES.map((item) => (
-                <SelectItem key={item} value={item}>
-                  {item}
-                </SelectItem>
-              ))}
-            </SelectContent>
-          </Select>
+        <div className="mt-8 flex flex-col gap-4">
+          <div className="flex gap-2 overflow-x-auto pb-1">
+            <button
+              type="button"
+              onClick={() =>
+                navigate({ search: (prev) => ({ ...prev, category: undefined }) })
+              }
+              className={`shrink-0 rounded-full border px-4 py-2 text-sm font-medium transition-colors ${
+                !category
+                  ? "border-primary bg-primary text-primary-foreground"
+                  : "border-border bg-surface text-muted-foreground hover:text-foreground"
+              }`}
+            >
+              All
+            </button>
+            {CATEGORIES.map((item) => (
+              <button
+                key={item}
+                type="button"
+                onClick={() =>
+                  navigate({ search: (prev) => ({ ...prev, category: item }) })
+                }
+                className={`shrink-0 rounded-full border px-4 py-2 text-sm font-medium transition-colors ${
+                  category === item
+                    ? "border-primary bg-primary text-primary-foreground"
+                    : "border-border bg-surface text-muted-foreground hover:text-foreground"
+                }`}
+              >
+                {item}
+              </button>
+            ))}
+          </div>
 
           <Select
             value={sort ?? "featured"}
